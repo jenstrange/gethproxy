@@ -5,13 +5,23 @@ import json
 from contextlib import closing
 from sqlitedict import SqliteDict
 
+# geth aware proxy:
+#   block based invalidation, if not latest, it's fine to cache:
+#     eth_getBlockByNumber 
+#     eth_getLogs
+# can i cache eth_call?
+
+
 async def gethnode(req):
-  async with websockets.connect("wss://gethnode.com/ws", max_size=2**24) as websocket:
+  # 256MB max request
+  async with websockets.connect("wss://gethnode.com/ws", max_size=2**28) as websocket:
     await websocket.send(req)
     resp = await websocket.recv()
     return resp
 
 async def server(websocket, path):
+  # is SqliteDict threadsafe? looks like it
+  # can replace the sqlite with redis to scale anyway
   with closing(SqliteDict('./cache.sqlite', autocommit=True)) as memoize:
     while 1:
       req = json.loads(await websocket.recv())
