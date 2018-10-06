@@ -6,7 +6,7 @@ from contextlib import closing
 from sqlitedict import SqliteDict
 
 async def gethnode(req):
-  async with websockets.connect("wss://gethnode.com/ws") as websocket:
+  async with websockets.connect("wss://gethnode.com/ws", max_size=2**24) as websocket:
     await websocket.send(req)
     resp = await websocket.recv()
     return resp
@@ -15,15 +15,20 @@ async def server(websocket, path):
   with closing(SqliteDict('./cache.sqlite', autocommit=True)) as memoize:
     while 1:
       req = json.loads(await websocket.recv())
-      print(f"< {req}")
-      key = (req['method'], req['params'])
+      assert sorted(req.keys()) == sorted(['id', 'jsonrpc', 'method', 'params'])
+      key = json.dumps((req['method'], req['params']))
+      print(f"< {key}")
       if key not in memoize:
-        print("cache miss")
-        memoize[key] = await gethnode(json.dumps(req))
-      resp = memoize[key] 
-      print(f"> {resp}")
-      #print(f"> {len(resp)}")
-      await websocket.send(resp)
+        print("> cache miss, fetch...")
+        resp = json.loads(await gethnode(json.dumps(req)))
+        assert sorted(resp.keys()) == sorted(['id', 'jsonrpc', 'result'])
+        #print(f">> {resp}")
+        memoize[key] = resp['result']
+      presp = {'id':req['id'], 'jsonrpc':req['jsonrpc'], 'result':memoize[key]}
+      presp = json.dumps(presp)
+      #print(f"> {presp}")
+      print(f"> {len(presp)}")
+      await websocket.send(presp)
 
 if __name__ == "__main__":
   """
