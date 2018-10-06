@@ -10,7 +10,7 @@ from sqlitedict import SqliteDict
 #     eth_getBlockByNumber 
 #     eth_getLogs
 # can i cache eth_call?
-
+#   this also takes a block, you can't cache "latest" or "pending"
 
 async def gethnode(req):
   # 256MB max request
