@@ -47,7 +47,7 @@ if __name__ == "__main__":
   print(resp)
   """
   print("starting server")
-  start_server = websockets.serve(server, 'localhost', 8546)
+  start_server = websockets.serve(server, 'localhost', 8547)
   asyncio.get_event_loop().run_until_complete(start_server)
   asyncio.get_event_loop().run_forever()
 
